@@ -1,6 +1,31 @@
 #! /bin/env python
 
+from abc import ABCMeta, abstractproperty
+
+class Article(metaclass=ABCMeta):
+
+    def __init__(self, url):
+        self._url = url
+
+    @property
+    def url(self):
+        return self._url
+
+    @abstractproperty
+    def date(self):
+        pass
+
+    @abstractproperty
+    def author(self):
+        pass
+
+    @abstractproperty
+    def text(self):
+        pass
+
 import argparse
+
+import format
 
 import asahi
 
@@ -21,5 +46,6 @@ def parser():
 
 if __name__ == '__main__':
     args = parser().parse_args()
+    cmd = format.CmdFormatter()
     for article in sites[args.site].articles(args.query):
-        print('{} [{}]'.format(article['title'], article['url']))
+        cmd.format(article)
