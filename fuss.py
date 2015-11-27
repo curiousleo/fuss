@@ -2,10 +2,18 @@
 
 from abc import ABCMeta, abstractproperty
 
+from bs4 import BeautifulSoup
+import requests
+
 class Article(metaclass=ABCMeta):
 
-    def __init__(self, url):
+    def __init__(self, url, session = None):
         self._url = url
+        r = session.get(url) if session else requests.get(url)
+        if r.status_code != 200:
+            msg = 'Request to {} failed with status code {}.'.format(url, r.status_code)
+            raise Exception(msg)
+        self._soup = BeautifulSoup(r.text, 'html.parser')
 
     @property
     def url(self):
@@ -46,6 +54,7 @@ def parser():
 
 if __name__ == '__main__':
     args = parser().parse_args()
-    cmd = format.CmdFormatter()
-    for article in sites[args.site].articles(args.query):
-        cmd.format(article)
+    s = requests.Session()
+    site = sites[args.site]
+    for url in site.find(args.query):
+        print(format.cmd(site.Article(url, s)))

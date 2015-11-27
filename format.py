@@ -4,37 +4,11 @@ from time import strftime
 
 DATE_FORMAT = '%Y-%m-%d'
 
-class Formatter(metaclass=ABCMeta):
+def cmd(article):
+    date = strftime(DATE_FORMAT, article.date)
+    return '[{}] {}'.format(date, article.title)
 
-    def __init__(self, ostream = stdout):
-        assert(ostream.writable())
-        self._ostream = ostream
-
-    @abstractmethod
-    def format(article):
-        pass
-
-class CmdFormatter(Formatter):
-
-    def __init__(self, *args):
-        super().__init__(*args)
-
-    def format(self, article):
-        self._ostream.write('[{}] '.format(strftime(DATE_FORMAT, article.date)))
-        self._ostream.write(article.title)
-        self._ostream.write('\n')
-
-Formatter.register(CmdFormatter)
-
-class CsvFormatter(Formatter):
-
-    def __init__(self, *args):
-        super().__init__(*args)
-
-    def format(self, article):
-        self._ostream.write('{},'.format(strftime(DATE_FORMAT, article.date)))
-        self._ostream.write('{},'.format(article.author))
-        self._ostream.write('"{}"'.format(article.title.replace('"', '\\"')))
-        self._ostream.write('\n')
-
-Formatter.register(CsvFormatter)
+def csv(article):
+    date = strftime(DATE_FORMAT, article.date)
+    title = article.title.replace('"', '\\"')
+    return '"{}","{}","{}"'.format(date, article.author, title)
