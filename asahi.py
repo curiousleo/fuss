@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 import requests
 
 import fuss
-from util import memoize
 
 BASE_URL = 'https://ajw.asahi.com'
 DATE_FORMAT = '%B %d, %Y'
