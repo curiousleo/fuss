@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+from json import dumps as json_dumps
 from sys import stdout
 from time import strftime
 
@@ -12,3 +13,11 @@ def csv(article):
     date = strftime(DATE_FORMAT, article.date)
     title = article.title.replace('"', '\\"')
     return '"{}","{}","{}"'.format(date, article.author, title)
+
+def json(article):
+    date = strftime(DATE_FORMAT, article.date)
+    obj = {
+        'url': article.url, 'date': date, 'title': article.title,
+        'author': article.author, 'text': article.text
+    }
+    return json_dumps(obj)
