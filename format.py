@@ -1,6 +1,4 @@
-from abc import ABCMeta, abstractmethod
 from json import dumps as json_dumps
-from sys import stdout
 from time import strftime
 
 DATE_FORMAT = '%Y-%m-%d'
