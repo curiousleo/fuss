@@ -1,35 +1,86 @@
 #! /bin/env python
 
 from abc import ABCMeta, abstractproperty
+from os import listdir
+from os.path import isfile, join
+from pathlib import Path
+import re
+from string import punctuation
 
 from bs4 import BeautifulSoup
 import requests
 
 class Article(metaclass=ABCMeta):
 
-    def __init__(self, url, session = None):
-        self._url = url
-        r = session.get(url) if session else requests.get(url)
-        if r.status_code != 200:
-            msg = 'Request to {} failed with status code {}.'.format(url, r.status_code)
-            raise Exception(msg)
-        self._soup = BeautifulSoup(r.text, 'html.parser')
+    def __init__(self, html, ident = None):
+        self._ident = ident
+        self._soup = BeautifulSoup(html, 'html.parser')
+
+    @classmethod
+    def from_file(cls, fname):
+        with open(fname) as f:
+            return cls(f.read(), str(Path(fname).absolute()))
+
+    @classmethod
+    def from_dir(cls, dname):
+        fnames = (join(dname, f) for f in listdir(dname))
+        fnames = filter(isfile, fnames)
+        return (cls.from_file(f) for f in fnames)
 
     @property
-    def url(self):
-        return self._url
+    def ident(self):
+        return self._ident
+
+    @property
+    def length(self):
+        return len(re.findall(r'\b\w+\b', self.text))
 
     @abstractproperty
     def date(self):
-        pass
+        raise NotImplementedError
 
     @abstractproperty
     def author(self):
-        pass
+        raise NotImplementedError
 
     @abstractproperty
     def text(self):
-        pass
+        raise NotImplementedError
+
+    @abstractproperty
+    def photos(self):
+        raise NotImplementedError
+
+class Author(object):
+
+    def __init__(self, typ, name = None, role = None):
+        self.typ = typ
+        self.name = name
+        self.role = role
+
+    def __str__(self):
+        s = self.typ
+        if self.role:
+            s = s + '(' + self.role + ')'
+        if self.name:
+            s = s + ':' + self.name
+        return s
+
+    @classmethod
+    def staff(cls, name = None, role = None):
+        return cls('staff', name, role)
+
+    @classmethod
+    def guest(cls, name):
+        return cls('guest', name)
+
+    @classmethod
+    def wire(cls, name):
+        return cls('wire', name)
+
+    @classmethod
+    def unknown(cls, name = None):
+        return cls('unknown', name)
 
 import argparse
 
@@ -57,4 +108,10 @@ if __name__ == '__main__':
     s = requests.Session()
     site = sites[args.site]
     for url in site.find(args.query):
-        print(format.cmd(site.Article(url, s)))
+        print(url)
+    # with open('dump.json', 'w') as f:
+        # f.write('[')
+        # for url in site.find(args.query):
+            # f.write(format.json(site.Article(url, s)))
+            # f.write(',')
+        # f.write(']')
