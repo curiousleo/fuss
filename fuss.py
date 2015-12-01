@@ -7,14 +7,18 @@ from pathlib import Path
 import re
 from string import punctuation
 
-from bs4 import BeautifulSoup
+from lxml import etree
+from lxml.html import document_fromstring as html_fromstring
+from lxml.html.clean import Cleaner
 import requests
 
 class Article(metaclass=ABCMeta):
 
     def __init__(self, html, ident = None):
         self._ident = ident
-        self._soup = BeautifulSoup(html, 'html.parser')
+
+        cleaner = Cleaner(style = True, meta = False, page_structure = False)
+        self._etree = cleaner.clean_html(html_fromstring(html))
 
     @classmethod
     def from_file(cls, fname):
@@ -35,12 +39,20 @@ class Article(metaclass=ABCMeta):
     def length(self):
         return len(re.findall(r'\b\w+\b', self.text))
 
+    @property
+    def html(self):
+        return etree.tostring(self._etree, pretty_print = False)
+
     @abstractproperty
     def date(self):
         raise NotImplementedError
 
     @abstractproperty
     def author(self):
+        raise NotImplementedError
+
+    @abstractproperty
+    def title(self):
         raise NotImplementedError
 
     @abstractproperty
