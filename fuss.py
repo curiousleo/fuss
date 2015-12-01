@@ -1,24 +1,20 @@
-#! /bin/env python
+#! /usr/bin/env python
 
 from abc import ABCMeta, abstractproperty
 from os import listdir
 from os.path import isfile, join
 from pathlib import Path
 import re
-from string import punctuation
 
-from lxml import etree
+from lxml.etree import tostring as html_tostring
 from lxml.html import document_fromstring as html_fromstring
 from lxml.html.clean import Cleaner
-import requests
 
 class Article(metaclass=ABCMeta):
 
     def __init__(self, html, ident = None):
         self._ident = ident
-
-        cleaner = Cleaner(style = True, meta = False, page_structure = False)
-        self._etree = cleaner.clean_html(html_fromstring(html))
+        self._etree = clean_html(html_fromstring(html))
 
     @classmethod
     def from_file(cls, fname):
@@ -41,7 +37,7 @@ class Article(metaclass=ABCMeta):
 
     @property
     def html(self):
-        return etree.tostring(self._etree, pretty_print = False)
+        return html_tostring(self._etree)
 
     @abstractproperty
     def date(self):
@@ -62,6 +58,8 @@ class Article(metaclass=ABCMeta):
     @abstractproperty
     def photos(self):
         raise NotImplementedError
+
+clean_html = Cleaner(style = True, meta = False, page_structure = False).clean_html
 
 class Author(object):
 
@@ -117,7 +115,6 @@ def parser():
 
 if __name__ == '__main__':
     args = parser().parse_args()
-    s = requests.Session()
     site = sites[args.site]
     for url in site.find(args.query):
         print(url)
