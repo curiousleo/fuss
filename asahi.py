@@ -11,12 +11,14 @@ from wire import iswire
 BASE_URL = 'https://ajw.asahi.com'
 DATE_FORMAT = '%B %d, %Y'
 REGEXES = {
-    re.compile(r'^B. ([A-Za-z ]+)/ Staff Writer$'): fuss.Author.staff,
+    re.compile(r'^B. ([A-Za-z ]+)/ (AJW )?Sta(r)?ff Writer$'): fuss.Author.staff,
     re.compile(r'^B. ([A-Za-z ]+)/ Senior Staff Writer$'): (lambda name: fuss.Author.staff(name, 'senior')),
+    re.compile(r'^B. ([A-Za-z ]+)/ Editorial Writer$'): (lambda name: fuss.Author.staff(name, 'editorial')),
+    re.compile(r'^B. ([A-Za-z ]+)/ Columnist$'): (lambda name: fuss.Author.staff(name, 'columnist')),
     re.compile(r'^B. ([A-Za-z ]+)/ Correspondent$'): (lambda name: fuss.Author.staff(name, 'correspondent')),
     re.compile(r'^B. ([A-Za-z ]+)$'): fuss.Author.guest,
 }
-ASAHI_REGEX = re.compile(r'^THE AS(A)?HI SHIMBUN$')
+ASAHI_REGEX = re.compile(r'^(special to )?the as(a)?hi shimbun$')
 VOX_REGEX = re.compile(r'^Vox Populi')
 
 class Article(fuss.Article):
@@ -26,37 +28,41 @@ class Article(fuss.Article):
 
     @property
     def date(self):
-        selector = '#article .date, #article_wrap .article_date'
-        date = self._soup.select(selector)[0]
-        return strptime(date.get_text().strip(), DATE_FORMAT)
+        path = '//div[@id = "article"]/div/span[@class = "date"]/text() | ' \
+               '//div[@class = "article_date"]/text()'
+        date = self._etree.xpath(path)[0]
+        return strptime(date.strip(), DATE_FORMAT)
 
     @property
     def author(self):
-        selection = self._soup.select('.author')
+        selection = self._etree.xpath('//p[@class = "author"]/text()')
         if len(selection) > 0:
-            return parse_author(selection[0].get_text().strip())
+            return parse_author(selection[0].strip())
         else:
             return fuss.Author.unknown()
 
     @property
     def title(self):
-        selector = '#article_head h1, #article_wrap .article_title'
-        return self._soup.select(selector)[0].get_text().strip()
+        path = '//h1/text() | //div[@class = "article_title"]/text()'
+        return self._etree.xpath(path)[0].strip()
 
     @property
     def text(self):
-        ps = self._soup.select('.text, #article_wrap .article_summary')[0]
-        return ''.join(ps.findAll(text = True)).strip()
+        path = '//div[@class = "text"]//text() | ' \
+               '//div[@class = "article_summary"]//text()'
+        return ''.join(p.strip() for p in self._etree.xpath(path))
 
     @property
     def photos(self):
-        selector = '#article .media_c img, #article .photo_list li, #article_wrap .leaf img'
-        return len(self._soup.select(selector))
+        path = '//div[@class = "media_c"]/img | ' \
+               '//div[@class = "photo_list"]/ul/li | ' \
+               '//*[contains(concat(" ", @class, " "), " leaf ")]//img'
+        return len(self._etree.xpath(path))
 
 fuss.Article.register(Article)
 
 def parse_author(string):
-    if ASAHI_REGEX.search(string):
+    if ASAHI_REGEX.search(string.lower()):
         return fuss.Author.staff()
     if VOX_REGEX.search(string):
         return fuss.Author.staff('Vox Populi')
